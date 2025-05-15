@@ -44,7 +44,7 @@ else
 fi
 cd "$SCRIPT_ROOT_DIR"
 
-RANDOM_TAGS=("v6.14" "v6.13" "v6.12" "v6.11" "v6.10" "v6.9" "v6.8" "v6.7" "v6.6")
+RANDOM_TAGS=("v6.6" "v6.14" "v6.13" "v6.12" "v6.11" "v6.10" "v6.9" "v6.8" "v6.7" )
 
 SEEDS=()
 for i in {1..3}; do
@@ -64,28 +64,30 @@ for TAG in "${RANDOM_TAGS[@]}"; do
     echo "Processing tag: $TAG"
     echo "------------------------------------"
 
-    cd "$LINUX_DIR_PATH"
-    if ! git checkout -f "$TAG"; then
-        echo "ERROR: Failed to checkout tag $TAG. Skipping."
-        echo "Tag: $TAG, Status: CHECKOUT_FAILED" >> "$REPORT"
-        cd "$SCRIPT_ROOT_DIR"
-        continue
-    fi
-	if ! git reset --hard; then
-        echo "ERROR: Failed to reset --hard after checking out tag $TAG. Skipping."
-        echo "Tag: $TAG, Status: RESET_FAILED" >> "$REPORT"
-        cd "$SCRIPT_ROOT_DIR"
-        continue
-    fi
-	git clean -xfd
-    echo "Cleaning build for $TAG (make mrproper)..."
-    make mrproper > /dev/null 2>&1 || echo "Warning: make mrproper might have failed for $TAG"
-    cd "$SCRIPT_ROOT_DIR"
-
     for SEED in "${SEEDS[@]}"; do
+	
+		cd "$LINUX_DIR_PATH"
+		if ! git checkout -f "$TAG"; then
+			echo "ERROR: Failed to checkout tag $TAG. Skipping."
+			echo "Tag: $TAG, Status: CHECKOUT_FAILED" >> "$REPORT"
+			cd "$SCRIPT_ROOT_DIR"
+			continue
+		fi
+		if ! git reset --hard; then
+			echo "ERROR: Failed to reset --hard after checking out tag $TAG. Skipping."
+			echo "Tag: $TAG, Status: RESET_FAILED" >> "$REPORT"
+			cd "$SCRIPT_ROOT_DIR"
+			continue
+		fi
+		git clean -xfd
+		echo "Cleaning build for $TAG (make mrproper)..."
+		make mrproper > /dev/null 2>&1 || echo "Warning: make mrproper might have failed for $TAG"
+		cd "$SCRIPT_ROOT_DIR"
         echo "  Seed: $SEED for tag: $TAG"
         OUTDIR="$RESULTS_DIR/${TAG}_${SEED}"
         mkdir -p "$OUTDIR"
+		
+		
 
         # --- Original parser ---
         echo "    Running with original parser..."
@@ -104,12 +106,13 @@ for TAG in "${RANDOM_TAGS[@]}"; do
             echo "Warning: .config not created by original parser ($TAG, $SEED)" >> "$OUTDIR/orig.stderr"
         fi
         cd "$SCRIPT_ROOT_DIR"
+		echo "Finished runnig with original parser..."
 
         # --- New parser ---
         echo "    Preparing and running with NEW parser..."
         cd "$LINUX_DIR_PATH"
 		
-		echo "cleaning old $TAG s kconfig"
+		echo "cleaning old $TAG's kconfig"
         rm -rf scripts/kconfig
         
         echo "    Copying new kconfig from $NEW_KCONFIG_PATH to $LINUX_DIR_PATH/scripts/"
@@ -168,6 +171,11 @@ if git show-ref --verify --quiet refs/heads/master; then
 elif git show-ref --verify --quiet refs/heads/main; then
     git checkout main
 fi
+
+git clean -xfd
+make clean > /dev/null 2>&1
+make mrproper > /dev/null 2>&1
+		
 cd "$SCRIPT_ROOT_DIR"
 
 echo "Testing completed. Results are in $RESULTS_DIR"
