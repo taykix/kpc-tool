@@ -1,6 +1,6 @@
 #!/bin/bash
 set -o pipefail
-
+set -x
 SCRIPT_ROOT_DIR=$(pwd)
 
 RESULTS_DIR_NAME="test_results"
@@ -37,15 +37,14 @@ rm -rf "$NEW_KCONFIG_PATH"
 mkdir -p "$NEW_KCONFIG_PATH"
 if [ -d "scripts/kconfig" ]; then
     echo "Copying latest scripts/kconfig from $LINUX_DIR_PATH/scripts/kconfig to $NEW_KCONFIG_PATH/"
-    cp -r scripts/kconfig/* "$NEW_KCONFIG_PATH/" # İçeriği kopyala, dizini değil
+    cp -r scripts/kconfig/* "$NEW_KCONFIG_PATH/"
 else
     echo "ERROR: scripts/kconfig not found in $LINUX_DIR_PATH on the latest branch. Cannot proceed."
     exit 1
 fi
+cd "$LINUX_DIR_PATH"
+RANDOM_TAGS=($(git tag | grep -E '^v[0-9]+\.[0-9]+(\.[0-9]+)?$'))
 cd "$SCRIPT_ROOT_DIR"
-
-RANDOM_TAGS=("v6.6" "v6.14" "v6.13" "v6.12" "v6.11" "v6.10" "v6.9" "v6.8" "v6.7" )
-
 SEEDS=()
 for i in {1..3}; do
     SEEDS+=($RANDOM)
@@ -128,7 +127,7 @@ for TAG in "${RANDOM_TAGS[@]}"; do
             cp .config "$OUTDIR/new.config"
         else
             touch "$OUTDIR/new.config"
-            echo "Warning: .config not created by new parser ($TAG, $SEED)" >> "$OUTDIR/new.stderr"
+            echo "Warning: .config not created by new parser ($TAG, $SEED)"
         fi
         
         cd "$SCRIPT_ROOT_DIR" 
